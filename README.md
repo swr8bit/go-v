@@ -42,39 +42,30 @@ Pro-режим не затронут
 ---
 
 ## Быстрый старт
+#### Скрипт автоматически запускается при установке
 
 ### 1. Установка через curl одной строкой (под root)
 
 ```bash
 sudo bash <(curl https://raw.githubusercontent.com/swr8bit/go-v/main/bootstrap.sh)
 ```
-
-### 2. Если вы не root
+#### Если вы не root
 
 ```bash
 sudo -i
 bash <(curl https://raw.githubusercontent.com/swr8bit/go-v/main/bootstrap.sh)
 ```
 
-### 3. Повторный запуск скрипта после установки
+### 2. Повторный запуск скрипта после установки
 
 ```bash
 govless
 ```
+#### Если вы не root 
 
----
-
-## Структура
-
-| Файл | Описание |
-|---|---|
-| `govless.sh` | Главный интерактивный установщик |
-| `install.sh` | Bootstrap для curl \| bash |
-| `deploy_pro.sh` | Автоматическая установка Pro |
-| `lib/` | Модули (common, xui, website, i18n, mode_switch) |
-| `phase-a/` | Telegram Bot, WebApp, JSON-RPC демон, systemd |
-| `tools/` | Инструменты разработчика |
-| `templates_catalog.json` | 1800+ шаблонов сайтов |
+```bash
+sudo govless
+```
 
 ---
 
