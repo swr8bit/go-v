@@ -1207,24 +1207,24 @@ remove_all() {
 # Called after install_3xui completes, before extract_credentials.
 #
 # Strategy:
-#  1. Try Let's Encrypt shortlived cert for IP (~6 days, auto-renews via
-#     acme.sh cron). This is the same mechanism 3X-UI's management script
-#     uses via ssl_cert_issue_for_ip — we just call acme.sh directly so we
-#     can run non-interactively.
-#  2. If LE fails (rate limit, port 80 in use, network), fall back to a
-#     long-lived (825-day) self-signed cert. Panel still gets HTTPS,
-#     user accepts cert once in browser.
+#   Pro mode (domain configured + LE cert exists):
+#     Uses existing Let's Encrypt domain certificate from /etc/letsencrypt/live/
+#     (same cert used by VPN and subscription server).
 #
-# Also fixes B3 ('webPort 0' warning) by writing settings directly via sqlite
-# instead of partial API payload. Subscription server binding is owned by
-# configure_sub_server below.
+#   Lite mode (no domain):
+#     Generates simple self-signed certificate valid for 10 years (3650 days).
+#     No Let's Encrypt / acme.sh attempts at all.
+#     Certificate stored in /etc/ssl/self_signed_cert/ with minimal SAN
+#     (localhost + 127.0.0.1) to reduce browser warnings when IP changes.
+#
+# Settings are written directly via sqlite. Subscription server is configured
+# separately in configure_sub_server().
+
 configure_panel_tls() {
     local lang_code="${1:-en}"
     local server_ip="${2:-}"
-    # Pro mode: the panel should be reachable at https://<domain>:<port> with a
-    # browser-valid certificate. Param 3 (or config domain) selects the domain's
-    # Let's Encrypt cert; otherwise (Lite / no cert yet) fall back to IP self-signed.
     local domain="${3:-$(config_get domain 2>/dev/null || true)}"
+    
     [ -z "$server_ip" ] && server_ip=$(get_server_ip 2>/dev/null) || true
 
     local lang_panel="en-US"
@@ -1233,54 +1233,53 @@ configure_panel_tls() {
     local crt key
     local le_crt="/etc/letsencrypt/live/${domain}/fullchain.pem"
     local le_key="/etc/letsencrypt/live/${domain}/privkey.pem"
+
     if [ -n "$domain" ] && [ -f "$le_crt" ] && [ -f "$le_key" ]; then
-        # Pro: reuse the domain LE cert (same one VPN/sub use). Auto-renews via
-        # certbot; x-ui re-reads it on restart (consistent with the sub server).
+        # Pro mode
         crt="$le_crt"
         key="$le_key"
         log_dim "Panel TLS: using domain certificate for ${domain}"
     else
-        # Lite / pre-cert: self-signed IP cert valid for the server IP.
-        local cert_dir="/root/cert/ip"
+        # Lite mode: self-signed certificate (10 years)
+        local cert_dir="/etc/ssl/self_signed_cert"
         mkdir -p "$cert_dir"
-        crt="${cert_dir}/${server_ip}.crt"
-        key="${cert_dir}/${server_ip}.key"
+        
+        crt="$cert_dir/self_signed.crt"
+        key="$cert_dir/self_signed.key"
 
-        # Skip cert issuance if cert already exists and is still valid >24h
         local need_issue=true
         if [ -f "$crt" ] && [ -f "$key" ]; then
             if openssl x509 -in "$crt" -noout -checkend 86400 >/dev/null 2>&1; then
-                log_dim "Reusing existing panel certificate at ${crt}"
+                log_dim "Reusing existing self-signed certificate (10 years)"
                 need_issue=false
             fi
         fi
 
         if $need_issue; then
-            _govless_issue_panel_cert "$server_ip" "$crt" "$key" || {
-                log_warning "Panel cert: LE shortlived failed → falling back to self-signed (825d)"
-                openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
-                    -keyout "$key" -out "$crt" \
-                    -subj "/CN=goVLESS-panel" \
-                    -addext "subjectAltName=IP:${server_ip},IP:127.0.0.1,DNS:localhost" \
-                    2>/dev/null || {
-                        log_error "Cert generation failed entirely — panel will stay HTTP"
-                        return 1
-                    }
-                chmod 600 "$key"
-                chmod 644 "$crt"
-            }
+            log_warning "Generating self-signed certificate (10 years) for Lite mode"
+            
+            openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+                -keyout "$key" \
+                -out "$crt" \
+                -subj "/CN=goVLESS-panel" \
+                -addext "subjectAltName=IP:127.0.0.1,DNS:localhost" \
+                2>/dev/null || {
+                    log_error "Cert generation failed — panel will stay HTTP"
+                    return 1
+                }
+            
+            chmod 600 "$key"
+            chmod 644 "$crt"
+            log_dim "Self-signed certificate created successfully"
         fi
     fi
 
-    # Apply settings via sqlite (avoids partial-API-payload bug B3)
+    # Apply settings via sqlite
     if ! command -v sqlite3 &>/dev/null || [ ! -f "$XUI_DB" ]; then
         log_warning "sqlite3/x-ui.db missing — skip panel TLS config"
         return 1
     fi
-    # NOTE: x-ui's `settings` table has no UNIQUE key on `key`, so INSERT OR
-    # REPLACE APPENDS duplicate rows instead of updating, and x-ui may then read
-    # a stale/empty row (e.g. empty webCertFile => panel stays HTTP). Delete
-    # these keys first, then insert exactly one row each.
+
     sqlite3 "$XUI_DB" <<SQL
 DELETE FROM settings WHERE key IN ('webCertFile', 'webKeyFile', 'webLang');
 INSERT INTO settings (key, value) VALUES ('webCertFile', '${crt}');
@@ -1288,8 +1287,6 @@ INSERT INTO settings (key, value) VALUES ('webKeyFile',  '${key}');
 INSERT INTO settings (key, value) VALUES ('webLang',     '${lang_panel}');
 SQL
 
-    # Enable subscription server (random port + random path) before the
-    # post-install QR/subscription flow reads regenerated links.
     configure_sub_server 2>/dev/null || log_warning "sub-server config skipped"
 
     systemctl restart x-ui 2>/dev/null || true
@@ -1299,82 +1296,16 @@ SQL
     return 0
 }
 
-# ── Internal: try Let's Encrypt shortlived cert for IP ────────────────
-_govless_issue_panel_cert() {
-    local server_ip="$1"
-    local crt="$2"
-    local key="$3"
-
-    # Install acme.sh if missing (canonical method: curl | sh -s email=...)
-    if [ ! -x "$HOME/.acme.sh/acme.sh" ]; then
-        log_dim "Installing acme.sh for SSL auto-renewal..."
-        # get.acme.sh accepts a first positional arg of form key=value,
-        # which it converts to --key value. So 'email=...' becomes '--email ...'.
-        curl -fsSL https://get.acme.sh \
-            | sh -s "email=admin@govless.app" \
-            >/tmp/govless_acme_install.log 2>&1 || {
-                log_dim "acme.sh install failed — see /tmp/govless_acme_install.log"
-                return 1
-            }
-        # Sanity check
-        [ -x "$HOME/.acme.sh/acme.sh" ] || {
-            log_dim "acme.sh binary not at expected path after install"
-            return 1
-        }
-    fi
-
-    # Install socat for standalone mode
-    command -v socat >/dev/null 2>&1 || apt-get install -y -qq socat >/dev/null 2>&1 || return 1
-
-    # Free port 80 for HTTP-01 challenge: stop nginx temporarily
-    local nginx_was_running=false
-    if systemctl is-active --quiet nginx 2>/dev/null; then
-        nginx_was_running=true
-        systemctl stop nginx
-    fi
-
-    # Issue cert using LE shortlived profile (6-7 day validity, auto-renews)
-    local acme_log=/tmp/govless_acme_issue.log
-    "$HOME/.acme.sh/acme.sh" --set-default-ca --server letsencrypt >>"$acme_log" 2>&1
-    # LE default profile rejects IP identifiers; must explicitly request the
-    # 'shortlived' profile (6-day, auto-renews via acme.sh cron). Recipe mirrors
-    # 3X-UI's own /usr/bin/x-ui ssl_cert_issue_for_ip function.
-    "$HOME/.acme.sh/acme.sh" --issue -d "$server_ip" --standalone \
-        --server letsencrypt \
-        --certificate-profile shortlived \
-        --days 6 \
-        --httpport 80 \
-        --keylength ec-256 \
-        --pre-hook  "systemctl stop  nginx 2>/dev/null || true" \
-        --post-hook "systemctl start nginx 2>/dev/null || true" \
-        --force \
-        >>"$acme_log" 2>&1
-    local rc=$?
-
-    $nginx_was_running && systemctl start nginx 2>/dev/null
-
-    if [ $rc -ne 0 ]; then
-        log_dim "LE issuance returned $rc — see $acme_log"
-        return 1
-    fi
-
-    # Install cert files to known paths, register reload hook for renew
-    "$HOME/.acme.sh/acme.sh" --install-cert -d "$server_ip" --ecc \
-        --key-file       "$key" \
-        --fullchain-file "$crt" \
-        --reloadcmd      "systemctl restart x-ui" \
-        >>"$acme_log" 2>&1 || return 1
-
-    chmod 600 "$key"
-    chmod 644 "$crt"
-    log_success "Panel cert issued via Let's Encrypt for IP ${server_ip} (~6d, auto-renew)"
-    return 0
-}
 
 # ── Repair: force re-detect IP, ensure sub-server, regen links ──────────
-# Idempotent fix-it-all for the common "I changed IP/domain/network and
-# nothing in goVLESS reflects it" complaint. Does NOT touch user data
-# (clients, traffic, admins) — only the derived/cached state.
+# ── Repair: force re-detect IP, ensure sub-server, regen links ──────────
+# Idempotent "fix-it-all" function.
+# Useful when user changed server IP, domain, or network configuration and
+# some links/URLs in the panel became outdated.
+#
+# Does NOT touch user data (clients, traffic, inbounds, admins).
+# Only refreshes derived/cached state: IP, subscription server config,
+# and regenerates links + QR codes from the database.
 repair_user_facing() {
     log_step "Repairing goVLESS state..."
 

@@ -3,8 +3,6 @@
 # ║  goVLESS v${GOVLESS_VERSION} — 3X-UI VPN installer with stealth masking  ║
 # ║  Lite: VLESS + Reality (masquerade as popular site)          ║
 # ║  Pro:  VLESS + TLS (your domain + real website)              ║
-# ║                                                               ║
-# ║  github.com/anten-ka • YouTube: anten-ka                     ║
 # ╚═══════════════════════════════════════════════════════════════╝
 
 set -euo pipefail
@@ -1128,16 +1126,12 @@ submenu_about() {
     echo -e "  Engine:     3X-UI + Xray-core"
     echo -e "  Protocol:   VLESS + XTLS-Vision"
     echo -e "  Security:   Reality / TLS"
-    echo -e "  Author:     anten-ka"
-    echo -e "  GitHub:     github.com/anten-ka"
-    echo -e "  YouTube:    youtube.com/@anten-ka"
     show_credits
     # Disclaimer (info-only, no gate — operator can re-read anytime)
     show_disclaimer
     echo -ne "  $(t press_enter_return) "
     read -r
 }
-
 # ═══════════════════════════════════════════════════════════════════════
 # MODE SELECTION
 # ═══════════════════════════════════════════════════════════════════════

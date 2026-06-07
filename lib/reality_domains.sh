@@ -103,12 +103,12 @@ INT_DOMAINS=(
     "paypal.com"
     "spotify.com"
     "netflix.com"
-    "twitch.tv"
     "reddit.com"
     "pinterest.com"
     "linkedin.com"
     "coursera.org"
     "udemy.com"
+	"ksaers.com"
 )
 
 # ── Domain validation for Reality ───────────────────────────────────────
