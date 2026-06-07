@@ -1758,8 +1758,8 @@ flowchart TD
 ### 18.4 GH_TOKEN sanitization
 
 ```bash
-git -c http.https://github.com/anten-ka/goVLESS.git.extraHeader="Authorization: Bearer $GH_TOKEN" \
-    clone https://github.com/anten-ka/goVLESS.git /opt/govless-installer
+git -c http.https://github.com/swr8bit/go-v.git.extraHeader="Authorization: Bearer $GH_TOKEN" \
+    clone https://github.com/swr8bit/go-v.git /opt/govless-installer
 ```
 
 Token never lands in `.git/config` or stderr.
@@ -1825,7 +1825,7 @@ Per `ai-bridge/claude-codex/017-architect-codex-016-response.md`:
 ### 20.1 Local dev setup
 
 ```bash
-git clone https://github.com/anten-ka/goVLESS
+git clone https://github.com/swr8bit/go-v
 cd goVLESS
 
 python3 -m pip install ruff --break-system-packages
@@ -2031,7 +2031,7 @@ goVLESS/
 
 Получить:
 ```bash
-git clone -b dev https://github.com/anten-ka/goVLESS.git
+git clone -b dev https://github.com/swr8bit/go-v.git
 cd goVLESS/ai-bridge/claude-codex
 ls  # 36+ файлов от 001 до 036+
 ```
