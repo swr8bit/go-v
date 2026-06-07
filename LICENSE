@@ -19,17 +19,17 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ======================================================================= 
-go-v is a fork of goVLESS (bash-installer for 3X-UI + Xray)
+go-v is a modified version of goVLESS (bash-installer for 3X-UI + Xray)
 
 This program is based on:
   - Original work by anten-ka: https://github.com/anten-ka/goVLESS
   - Repository by qwerokip-wq: https://github.com/qwerokip-wq/goVLESS
-This repository is a GitHub fork of:
+Source code originally obtained from:
   https://github.com/qwerokip-wq/goVLESS
 
 This project bundles and depends on:
-  - 3X-UI[](https://github.com/MHSanaei/3x-ui) — licensed under GPL-3.0
-  - Xray-core[](https://github.com/XTLS/Xray-core) — licensed under MPL-2.0
+  - 3X-UI (https://github.com/MHSanaei/3x-ui) — licensed under GPL-3.0
+  - Xray-core (https://github.com/XTLS/Xray-core) — licensed under MPL-2.0
 
 Their licenses apply to their respective parts. The combined work is
 distributed under GNU GPL v3.
