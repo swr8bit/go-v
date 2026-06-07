@@ -1261,8 +1261,8 @@ configure_panel_tls() {
             openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
                 -keyout "$key" \
                 -out "$crt" \
-                -subj "/CN=goVLESS-panel" \
-                -addext "subjectAltName=IP:127.0.0.1,DNS:localhost" \
+                -subj "/C=US/ST=State/L=City/O=Organization/OU=Department/CN=0.0.0.0" \
+                -addext "subjectAltName=IP:0.0.0.0" \
                 2>/dev/null || {
                     log_error "Cert generation failed — panel will stay HTTP"
                     return 1
