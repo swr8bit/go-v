@@ -233,7 +233,7 @@ flowchart TB
 | Дата | Что |
 |------|-----|
 | 2025 → начало 2026 | проект назывался **XUIFAST**, был только bash-инсталлер |
-| Февраль 2026 | ребрендинг → **goVLESS**, приватный репо `anten-ka/goVLESS` |
+| Февраль 2026 | ребрендинг → **goVLESS**, приватный репо `swr8bit/go-v` |
 | Май 2026 | **Phase A**: govlessctl + Telegram-бот + WebApp + systemd |
 | TBD | **Phase B**: квоты, push, мультисервер |
 
@@ -261,7 +261,7 @@ flowchart TB
 ```bash
 ssh root@<твой-ip>
 
-bash <(curl -sL https://raw.githubusercontent.com/anten-ka/goVLESS/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/swr8bit/go-v/main/bootstrap.sh)
 ```
 
 Ответь:
@@ -873,7 +873,7 @@ curl -i http://domain.com/.well-known/acme-challenge/test
 ```bash
 # 0. Бэкап (см. §7)
 x-ui uninstall
-bash <(curl -sL https://raw.githubusercontent.com/anten-ka/goVLESS/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/swr8bit/go-v/main/bootstrap.sh)
 # Restore из бэкапа
 ```
 
@@ -1021,7 +1021,7 @@ flowchart LR
 
 ### Version & release model
 
-- Single `main` branch in private repo `anten-ka/goVLESS`.
+- Single `main` branch in private repo `swr8bit/go-v`.
 - Public releases via cherry-pick / squash-merge to a public mirror (TBD) + GitHub Release with `GOVLESS_VERSION` bump in `lib/common.sh`.
 - AI agents do NOT push to a public mirror without explicit human approval.
 
@@ -1838,7 +1838,7 @@ python3 -m py_compile phase-a/govlessctl/*.py phase-a/bot/*.py phase-a/bot/handl
 
 ```bash
 ssh root@<vps>
-bash <(curl -sL https://raw.githubusercontent.com/anten-ka/goVLESS/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/swr8bit/go-v/main/bootstrap.sh)
 cd /opt/govless-installer
 bash phase-a/systemd/install/install_phase_a.sh
 ```
