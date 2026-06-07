@@ -1,6 +1,16 @@
-# goVLESS
+# go-v
 
-**goVLESS** — интерактивный установщик VPN-сервера на базе **3X-UI** (Xray-core) с протоколом **VLESS + XTLS-Vision** и маскировкой трафика.
+**Модифицированная версия** goVLESS — bash-installer для VLESS (3X-UI + Xray, Reality/TLS) с установкой в одну команду.
+
+---
+
+## О форке
+
+Основное отличие от оригинального goVLESS:
+Данная модификация **выпускает** в Lite-режиме для панели **простой самоподписной сертификат на 10 лет**.
+Pro-режим не затронут
+
+---
 
 ## Возможности
 
@@ -14,53 +24,44 @@
 - BBR — автоматическое включение
 - WAL-safe backup/restore
 
+---
+
+## Изменения: 
+- Выпускает в Lite-режиме простой самоподписной сертификат для панели на 10 лет.
+- Убрана ветка с попыткой _govless_issue_panel_cert (acme.sh полностью убран из функции configure_panel_tls.)
+- Изменен путь хранения сертификата на более стандартный (/etc/ssl/self_signed_cert/).
+- Убрана привязка к публичному IP в SAN (оставлена только localhost)
+- Полностью удалена функция _govless_issue_panel_cert как мертвый код который больше не вызывается
+- Мелкие правки комментариев описывающих логику скрипта
+- В cert_info_1 и 2 теперь выводится что сертификат на 10 лет
+- Другие косметические правки, не влияющие на логику
+- Удален self_signed_cert.sh поскольку выпуск сертификатов давно реализован в самом xui.sh
+- Заменены пути к репозиторию в документации
+
+---
+
 ## Быстрый старт
 
-### 1. Локальный запуск (если скопировал файлы на сервер)
+### 1. Установка через curl одной строкой (под root)
 
 ```bash
-sudo bash govless.sh
+sudo bash <(curl https://raw.githubusercontent.com/swr8bit/go-v/main/bootstrap.sh)
 ```
 
-### 2. Через curl (одной строкой, на сервере)
+### 2. Если вы не root
 
 ```bash
-sudo bash <(curl -sL https://raw.githubusercontent.com/qwerokip-wq/goVLESS/main/bootstrap.sh)
+sudo -i
+bash <(curl https://raw.githubusercontent.com/swr8bit/go-v/main/bootstrap.sh)
 ```
 
-Если process substitution (`<(...)`) не работает (нет `/dev/fd`), используй pipe:
+### 3. Повторный запуск скрипта после установки
 
 ```bash
-curl -sL https://raw.githubusercontent.com/qwerokip-wq/goVLESS/main/bootstrap.sh | sudo bash
+govless
 ```
 
-### 3. Скачать и запустить (две команды)
-
-```bash
-curl -sL -o bootstrap.sh https://raw.githubusercontent.com/qwerokip-wq/goVLESS/main/bootstrap.sh
-sudo bash bootstrap.sh
-```
-
-### 4. Через wget
-
-```bash
-wget -qO- https://raw.githubusercontent.com/qwerokip-wq/goVLESS/main/bootstrap.sh | sudo bash
-```
-
-### 5. Установка git + клонирование (для доступа к полному набору файлов)
-
-```bash
-sudo apt update && sudo apt install -y git
-git clone https://github.com/qwerokip-wq/goVLESS.git
-cd goVLESS
-sudo bash govless.sh
-```
-
-### 6. Автоустановка Pro (без интерактива, env-конфиг)
-
-```bash
-sudo bash deploy_pro.sh
-```
+---
 
 ## Структура
 
@@ -69,18 +70,22 @@ sudo bash deploy_pro.sh
 | `govless.sh` | Главный интерактивный установщик |
 | `install.sh` | Bootstrap для curl \| bash |
 | `deploy_pro.sh` | Автоматическая установка Pro |
-| `self_signed_cert.sh` | Генерация самоподписанных сертификатов |
 | `lib/` | Модули (common, xui, website, i18n, mode_switch) |
 | `phase-a/` | Telegram Bot, WebApp, JSON-RPC демон, systemd |
 | `tools/` | Инструменты разработчика |
 | `templates_catalog.json` | 1800+ шаблонов сайтов |
+
+---
 
 ## Требования
 
 - Linux (Ubuntu/Debian/CentOS)
 - Root-доступ
 - Для Pro: свой домен с A-записью на IP сервера
+- Протестировано лично на Ubuntu 24.04 и Linux Mint 22.3
+
+---
 
 ## Лицензия
-
-MIT
+Проект распространяется под лицензией GNU General Public License v3.0 (GPL-3.0), как и оригинал.
+Подробности — в файле LICENSE.
